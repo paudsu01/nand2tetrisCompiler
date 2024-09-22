@@ -1,21 +1,23 @@
+from __future__ import annotations
 from enum import Enum
+
 import re
 
 class Token:
 
-    SYMBOLS = ['{','}','(',')','[',']','.',',',';','+','-',\
+    __SYMBOLS = ['{','}','(',')','[',']','.',',',';','+','-',\
             '*','/','&','|','<','>','=','~']
-    KEYWORDS = ['class', 'constructor', 'function', 'method', 'field',\
+    __KEYWORDS = ['class', 'constructor', 'function', 'method', 'field',\
                 'static', 'var', 'int', 'char', 'boolean', 'void', 'true', 'false',\
                 'null', 'this','let', 'do', 'if', 'else', 'while', 'return']
 
     def __init__(self, raw_code: str):
 
-        if raw_code in self.KEYWORDS:
+        if raw_code in self.__KEYWORDS:
             self.__token_type = TokenType.KEYWORD
             self.__value = raw_code
 
-        elif raw_code in self.SYMBOLS:
+        elif raw_code in self.__SYMBOLS:
             self.__token_type = TokenType.SYMBOL
             self.__value = raw_code
 
@@ -44,11 +46,11 @@ class Token:
             return False
 
     @property
-    def token_type(self):
+    def token_type(self) -> TokenType:
         return self.__token_type
 
     @property
-    def value(self):
+    def value(self) -> str:
         return self.__value
 
 class TokenType(Enum):

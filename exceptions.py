@@ -1,0 +1,2 @@
+class OutOfTokens(Exception):
+    pass
