@@ -17,7 +17,6 @@ class Scanner:
 
         # remove comments and strip whitespaces 
         cleaned_lines = self.__clean_jack_file(all_lines)
-        print(cleaned_lines)
         self.__tokens = self.__tokenize(cleaned_lines)
 
     def __tokenize(self, cleaned_lines: List[str])->List[str]:
@@ -29,22 +28,33 @@ class Scanner:
 
             current_token = ''
             current_index = 0
+            string_processing = False
 
             while current_index < len(line):
 
                 char = line[current_index]
 
-                if char in Token.symbols or empty_pattern.match(char):
+                if char == '"':
+
+                    if string_processing:
+                        all_tokens.append(current_token + '"')
+                        current_token = ''
+                    else:
+                        current_token += char
+
+                    string_processing = False if string_processing else True
+
+                elif (char in Token.symbols or empty_pattern.match(char)) and not string_processing:
 
                     if current_token != '': all_tokens.append(current_token)
                     if char in Token.symbols: all_tokens.append(char)
 
                     current_token = ''
-                    current_index += 1
 
                 else:
                     current_token += char
-                    current_index += 1
+
+                current_index += 1
 
         return all_tokens
 
