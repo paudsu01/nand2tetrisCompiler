@@ -5,11 +5,15 @@ import re
 
 class Token:
 
+    ## PRIVATE CLASS ATTRIBUTES ##
+
     __SYMBOLS = ['{','}','(',')','[',']','.',',',';','+','-',\
             '*','/','&','|','<','>','=','~']
     __KEYWORDS = ['class', 'constructor', 'function', 'method', 'field',\
                 'static', 'var', 'int', 'char', 'boolean', 'void', 'true', 'false',\
                 'null', 'this','let', 'do', 'if', 'else', 'while', 'return']
+    
+    ## Constructor ##
 
     def __init__(self, raw_code: str):
 
@@ -33,6 +37,8 @@ class Token:
             self.__token_type = TokenType.IDENTIFIER
             self.__value = raw_code
 
+    ## INSTANCE PRIVATE METHODS ## 
+
     def __token_is_string_constant(self, raw_value: str) -> bool:
         pattern1 = re.compile(r'^".*?"$')
         pattern2 = re.compile(r"^'.*?'$")
@@ -44,6 +50,20 @@ class Token:
             return True
         except:
             return False
+
+    ## CLASS PUBLIC GETTERS ##
+
+    @classmethod
+    @property
+    def keywords(cls):
+        return cls.__KEYWORDS
+
+    @classmethod
+    @property
+    def symbols(cls):
+        return cls.__SYMBOLS
+
+    ## INSTANCE GETTERS ## 
 
     @property
     def token_type(self) -> TokenType:
