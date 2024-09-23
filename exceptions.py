@@ -12,3 +12,6 @@ class SpecificKeywordExpectedException(Exception):
 
 class SpecificSymbolExpectedException(Exception):
     pass
+
+class IdentifierExpectedException(Exception):
+    pass

@@ -3,6 +3,7 @@ from scanner import Scanner
 from jack_token import TokenType
 from exceptions import KeywordExpectedException,\
         SymbolExpectedException,\
+        IdentifierExpectedException,\
         SpecificKeywordExpectedException,\
         SpecificSymbolExpectedException
 
@@ -26,7 +27,7 @@ class Parser:
             raise SpecificKeywordExpectedException(f'{specific_values} keyword(s) expected: got {current_token.value} keyword instead')
 
         xml = " " * indent + f"<keyword>{current_token.value}</keyword>\n"
-        self.__scanner.advance()
+        if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
     def compileSymbol(self, indent: int, specific_value_required=False, *expected_values: Tuple[str])->str:
@@ -39,7 +40,7 @@ class Parser:
             raise SpecificSymbolExpectedException(f'{expected_values} symbol(s) expected: got {current_token.value} keyword instead')
 
         xml = " " * indent + f"<symbol>{current_token.value}</symbol>\n"
-        self.__scanner.advance()
+        if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
     def compileIntegerConstant(self, indent : int)->str:
@@ -49,7 +50,7 @@ class Parser:
             raise SymbolExpectedException(f'IntegerConstant expected: got {current_token.value} instead')
 
         xml = ' ' * indent + f"<integerConstant>{current_token.value}</integerConstant>\n"
-        self.__scanner.advance()
+        if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml 
 
     def compileStringConstant(self, indent : int)->str:
@@ -59,7 +60,7 @@ class Parser:
             raise SymbolExpectedException(f'StringConstant expected: got {current_token.value} instead')
 
         xml = ' ' * indent + f"<stringConstant>{current_token.value}</stringConstant>\n"
-        self.__scanner.advance()
+        if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
     def compileIdentifier(self, indent : int)->str:
@@ -67,68 +68,128 @@ class Parser:
         current_token = self.__scanner.current_token()
 
         if not (current_token.token_type is TokenType.IDENTIFIER):
-            raise SymbolExpectedException(f'Identifier expected: got {current_token} instead')
+            raise IdentifierExpectedException(f'Identifier expected: got {current_token.value} instead')
 
         xml = ' ' * indent + f"<identifier>{current_token.value}</identifier>\n"
-        self.__scanner.advance()
+        if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
 
     """ PROGRAM STRUCTURE GRAMMAR """
 
-    def compileClass(self, indent=2)->str:
-        xml = '<class>\n'
-        xml += ' ' * indent + self.compileKeyword(indent+2, True, "class") +\
-                ' ' * indent + self.compileIdentifier(indent+2) +\
-                ' ' * indent + self.compileSymbol(indent+2, True, "{")
+    def compileClass(self, indent=0)->str:
 
-        current_token = self.__scanner.current_token()
-        while current_token.value in ['static', 'field']:
-            xml += ' ' * indent + self.compileClassVarDec(indent+2)
-            current_token = self.__scanner.current_token(indent+2)
+        xml = ['<class>\n']
 
-        current_token = self.__scanner.current_token()
-        while current_token.value in ['constructor', 'function', 'method']:
-            xml += ' ' * indent + self.compileSubroutine(indent+2)
-            current_token = self.__scanner.current_token(indent+2)
+        xml.append(self.compileKeyword(indent+2, True, "class"))
+        xml.append(self.compileIdentifier(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, "{"))
 
-        xml+= " " * indent + (self.compileSymbol(indent+2, True, '}'))
-        xml+=('</class>')
-        return xml
+        while self.__scanner.current_token().value in ['static', 'field']:
+            xml.append(self.compileClassVarDec(indent+2))
+
+        while self.__scanner.current_token().value in ['constructor', 'function', 'method']:
+            xml.append(self.compileSubroutine(indent+2))
+
+        xml.append(self.compileSymbol(indent+2, True, '}'))
+        xml.append('</class>')
+
+        return ''.join(xml)
+
 
     def compileClassVarDec(self, indent : int)->str:
-        xml = f'<classVarDec>\n  {self.compileKeyword(True, "class")}  {self.compileIdentifier()}  {self.compileSymbol(True, "{")}'
 
-        current_token = self.__scanner.current_token()
-        while current_token.value in ['static', 'field']:
-            xml += f"  {self.compileClassVarDec()}"
-            current_token = self.__scanner.current_token()
+        xml = [' ' * indent + '<classVarDec>\n']
 
-        current_token = self.__scanner.current_token()
-        while current_token.value in ['constructor', 'function', 'method']:
-            xml += f"  {self.compileSubroutine()}"
-            current_token = self.__scanner.current_token()
+        xml.append(self.compileKeyword(indent+2, True, "static", "field"))
+        xml.append(self.compileType(indent+2))
+        xml.append(self.compileIdentifier(indent+2))
 
-        xml+= "  " + (self.compileSymbol(True, '}'))
-        xml+=('</class>')
-        return xml       
+        while self.__scanner.current_token().value == ',':
+            xml.append(self.compileSymbol(indent+2, True,","))
+            xml.append(self.compileIdentifier(indent+2))
+
+        xml.append(self.compileSymbol(indent+2, True, ';'))
+        xml.append(' ' * indent + '</classVarDec>\n')
+
+        return ''.join(xml)
 
     def compileType(self, indent : int)->str:
-        pass
+        token = self.__scanner.current_token()
+        return self.compileIdentifier(indent) if token.token_type is TokenType.IDENTIFIER else self.compileKeyword(indent, True, 'int', 'char', 'boolean')
 
     def compileSubroutine(self, indent : int)->str:
-        return ""
+
+        xml = [' ' * indent + '<subroutineDec>\n']
+
+        xml.append(self.compileKeyword(indent+2, True, "constructor", "function", "method"))
+
+        if self.__scanner.current_token().value == 'void':
+            xml.append(self.compileKeyword(indent+2, True, "void"))
+        else:
+            xml.append(self.compileType(indent+2))
+
+        xml.append(self.compileIdentifier(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, '('))
+        xml.append(self.compileParameterList(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, ')'))
+
+        xml.append(self.compileSubroutineBody(indent+2))
+        xml.append(' ' * indent + '</subroutineDec>\n')
+        return ''.join(xml)
+    
+    def compileSubroutineBody(self, indent: int) -> str:
+
+        xml = [' ' * indent + '<subroutineBody>\n']
+        xml.append(self.compileSymbol(indent+2, True, '{'))
+
+        while self.__scanner.current_token().value == 'var':
+            xml.append(self.compileVarDec(indent+2))
+
+        xml.append(self.compileStatements(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, '}'))
+
+        xml.append(' ' * indent + '</subroutineBody>\n')
+        return ''.join(xml)
+
 
     def compileParameterList(self, indent : int)->str:
-        pass
+        xml = [' '* indent + '<parameterList>\n']
+
+        current_token = self.__scanner.current_token()
+        if not current_token.token_type is TokenType.SYMBOL:
+
+            xml.append(self.compileType(indent+2))
+            xml.append(self.compileIdentifier(indent+2))
+
+            while self.__scanner.current_token().value == ',':
+                xml.append(self.compileSymbol(indent+2, True, ','))
+                xml.append(self.compileType(indent+2))
+                xml.append(self.compileIdentifier(indent+2))
+
+        xml.append(' '* indent + '</parameterList>\n')
+        return ''.join(xml)
 
     def compileVarDec(self, indent : int)->str:
-        pass
+        xml = [' '* indent + '<varDec>\n']
+
+        xml.append(self.compileKeyword(indent+2, True, 'var'))
+        xml.append(self.compileType(indent+2))
+        xml.append(self.compileIdentifier(indent+2))
+
+        while self.__scanner.current_token().value == ',':
+            xml.append(self.compileSymbol(indent+2, True, ','))
+            xml.append(self.compileIdentifier(indent+2))
+
+        xml.append(self.compileSymbol(indent+2, True, ';'))
+        xml.append(' '* indent + '</varDec>\n')
+
+        return ''.join(xml)
 
     """ STATEMENTS GRAMMAR """ 
 
     def compileStatements(self, indent : int)->str:
-        pass
+        return ""
 
     def compileDo(self, indent : int)->str:
         pass
