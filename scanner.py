@@ -60,12 +60,24 @@ class Scanner:
 
     def __clean_jack_file(self, lines: List[str]) -> List[str]:
 
-        comment_pattern = re.compile(r'(.*)(//.*)?')
+        comment_pattern = re.compile(r'^(.*?)((/\*\*?|//).*)?$')
+        asterisk_comment_pattern = re.compile(r'/\*\*?.*')
+
         filtered_lines = []
-        for line in lines:
+        line_index = 0
+
+        while line_index < len(lines):
+
+            line = lines[line_index]
             if comment_pattern.match(line.strip()):
                 necessary_tokens = comment_pattern.match(line.strip()).group(1)
                 if necessary_tokens != '': filtered_lines.append(necessary_tokens)
+
+            if asterisk_comment_pattern.search(line.strip()):
+                while not lines[line_index].strip().endswith('*/'):
+                    line_index += 1
+
+            line_index += 1
 
         return filtered_lines
 
