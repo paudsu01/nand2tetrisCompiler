@@ -25,26 +25,24 @@ class Token:
             self.__token_type = TokenType.SYMBOL
             self.__value = raw_code
 
-        elif self.__token_is_integer_constant(raw_code):
+        elif self.token_is_integer_constant(raw_code):
             self.__token_type = TokenType.INTEGER_CONSTANT
             self.__value = raw_code
 
-        elif self.__token_is_string_constant(raw_code):
+        elif self.token_is_string_constant(raw_code):
             self.__token_type = TokenType.STRING_CONSTANT
-            self.__value = raw_code
+            self.__value = raw_code[1:-1]
 
         else:
             self.__token_type = TokenType.IDENTIFIER
             self.__value = raw_code
 
-    ## INSTANCE PRIVATE METHODS ## 
-
-    def __token_is_string_constant(self, raw_value: str) -> bool:
+    def token_is_string_constant(self, raw_value: str) -> bool:
         pattern1 = re.compile(r'^".*?"$')
         pattern2 = re.compile(r"^'.*?'$")
         return True if pattern1.match(raw_value) or pattern2.match(raw_value) else False
 
-    def __token_is_integer_constant(self, raw_value: str) -> bool:
+    def token_is_integer_constant(self, raw_value: str) -> bool:
         try:
             int(raw_value)
             return True

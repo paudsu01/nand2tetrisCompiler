@@ -37,7 +37,7 @@ class Scanner:
                 if char == '"':
 
                     if string_processing:
-                        all_tokens.append(current_token + '"')
+                        all_tokens.append(Token(current_token + '"'))
                         current_token = ''
                     else:
                         current_token += char
@@ -46,8 +46,8 @@ class Scanner:
 
                 elif (char in Token.symbols or empty_pattern.match(char)) and not string_processing:
 
-                    if current_token != '': all_tokens.append(current_token)
-                    if char in Token.symbols: all_tokens.append(char)
+                    if current_token != '': all_tokens.append(Token(current_token))
+                    if char in Token.symbols: all_tokens.append(Token(char))
 
                     current_token = ''
 
