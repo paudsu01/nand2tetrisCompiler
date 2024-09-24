@@ -84,6 +84,10 @@ class Scanner:
     def current_token(self) -> Token:
         return self.__tokens[self.__current_token_index]
 
+    def next_token(self) -> Token:
+        if self.has_more_tokens(): return self.__tokens[self.__current_token_index+1]
+        else: raise OutOfTokens("Out of tokens")
+
     def advance(self) -> None:
         if self.has_more_tokens():
             self.__current_token_index += 1

@@ -306,15 +306,69 @@ class Parser:
     def compileExpression(self, indent : int)->str:
 
         xml= [' ' * indent + '<expression>\n']
-        xml.append(self.compileIntegerConstant(indent+2))
+        
+        xml.append(self.compileTerm(indent+2))
+        while self.__scanner.current_token().token_type in ['+', '-', '*', '/', '&', '|', '<', '>', '=']:
+            xml.append(self.compileSymbol(indent+2))
+            xml.append(self.compileTerm(indent+2))
+
         xml.append(' ' * indent + '</expression>\n')
         return ''.join(xml)
 
     def compileTerm(self, indent : int)->str:
-        pass
+        xml = [' '* indent+ '<term>\n']
+        token = self.__scanner.current_token()
+
+        if token.token_type is TokenType.INTEGER_CONSTANT:
+            xml.append(self.compileIntegerConstant(indent+2))
+
+        elif token.token_type is TokenType.KEYWORD:
+            xml.append(self.compileKeyword(indent+2))
+
+        elif token.token_type is TokenType.STRING_CONSTANT:
+            xml.append(self.compileStringConstant(indent+2))
+
+        elif token.value == '(':
+            xml.append(self.compileSymbol(indent+2, True, '('))
+            xml.append(self.compileExpression(indent+2))
+            xml.append(self.compileSymbol(indent+2, True, ')'))
+
+        elif token.value in ['-', '~']:
+            xml.append(self.compileSymbol(indent+2, True, token.value))
+            xml.append(self.compileTerm(indent+2))
+
+        elif token.token_type is TokenType.IDENTIFIER:
+
+            if token.has_more_tokens():
+                next_token = self.__scanner.next_token()
+
+                if next_token.value == '[':
+                    xml.append(self.compileIdentifier(indent+2))
+                    xml.append(self.compileSymbol(indent+2, True, '['))
+                    xml.append(self.compileExpression(indent+2))
+                    xml.append(self.compileSymbol(indent+2, True, ']'))
+
+                elif next_token.value == '(':
+                    xml.append(self.compileSubroutineCall(indent+2))
+
+                else:
+                    xml.append(self.compileIdentifier(indent+2))
+
+            else:
+                xml.append(self.compileIdentifier(indent+2))
+ 
+        xml.append(' '* indent+ '</term>\n')
+        return ''.join(xml)
+
 
     def compileExpressionList(self, indent : int)->str:
         xml= [' ' * indent + '<expressionList>\n']
-        xml.append(self.compileIntegerConstant(indent+2))
+
+        if self.__scanner.current_token().value != ')':
+            xml.append(self.compileExpression(indent+2))
+            while self.__scanner.current_token().value == ',':
+                xml.append(self.compileSymbol(indent+2, True, ','))
+                xml.append(self.compileExpression(indent+2))
+
         xml.append(' ' * indent + '</expressionList>\n')
         return ''.join(xml)
