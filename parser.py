@@ -26,7 +26,7 @@ class Parser:
         if specific_value_required and current_token.value not in specific_values:
             raise SpecificKeywordExpectedException(f'{specific_values} keyword(s) expected: got {current_token.value} keyword instead')
 
-        xml = " " * indent + f"<keyword>{current_token.value}</keyword>\n"
+        xml = " " * indent + f"<keyword> {current_token.value} </keyword>\n"
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
@@ -38,8 +38,19 @@ class Parser:
 
         if specific_value_required and current_token.value not in expected_values:
             raise SpecificSymbolExpectedException(f'{expected_values} symbol(s) expected: got {current_token.value} keyword instead')
+        
 
-        xml = " " * indent + f"<symbol>{current_token.value}</symbol>\n"
+        replacement = {
+                    '<':'&lt;',
+                    '>':'&gt;',
+                    '&':'&amp;'
+            }
+        if current_token.value in replacement:
+            value_to_put = replacement[current_token.value]
+        else:
+            value_to_put = current_token.value
+
+        xml = " " * indent + f"<symbol> {value_to_put} </symbol>\n"
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
@@ -49,7 +60,7 @@ class Parser:
         if not (current_token.token_type is TokenType.INTEGER_CONSTANT):
             raise SymbolExpectedException(f'IntegerConstant expected: got {current_token.value} instead')
 
-        xml = ' ' * indent + f"<integerConstant>{current_token.value}</integerConstant>\n"
+        xml = ' ' * indent + f"<integerConstant> {current_token.value} </integerConstant>\n"
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml 
 
@@ -59,7 +70,7 @@ class Parser:
         if not (current_token.token_type is TokenType.STRING_CONSTANT):
             raise SymbolExpectedException(f'StringConstant expected: got {current_token.value} instead')
 
-        xml = ' ' * indent + f"<stringConstant>{current_token.value}</stringConstant>\n"
+        xml = ' ' * indent + f"<stringConstant> {current_token.value} </stringConstant>\n"
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
@@ -70,7 +81,7 @@ class Parser:
         if not (current_token.token_type is TokenType.IDENTIFIER):
             raise IdentifierExpectedException(f'Identifier expected: got {current_token.value} instead')
 
-        xml = ' ' * indent + f"<identifier>{current_token.value}</identifier>\n"
+        xml = ' ' * indent + f"<identifier> {current_token.value} </identifier>\n"
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
@@ -308,7 +319,7 @@ class Parser:
         xml= [' ' * indent + '<expression>\n']
         
         xml.append(self.compileTerm(indent+2))
-        while self.__scanner.current_token().token_type in ['+', '-', '*', '/', '&', '|', '<', '>', '=']:
+        while self.__scanner.current_token().value in ['+', '-', '*', '/', '&', '|', '<', '>', '=']:
             xml.append(self.compileSymbol(indent+2))
             xml.append(self.compileTerm(indent+2))
 
@@ -348,8 +359,8 @@ class Parser:
                     xml.append(self.compileExpression(indent+2))
                     xml.append(self.compileSymbol(indent+2, True, ']'))
 
-                elif next_token.value == '(':
-                    xml.append(self.compileSubroutineCall(indent+2))
+                elif next_token.value == '(' or next_token.value == '.':
+                    xml.append(self.compileSubroutineCall(indent))
 
                 else:
                     xml.append(self.compileIdentifier(indent+2))
