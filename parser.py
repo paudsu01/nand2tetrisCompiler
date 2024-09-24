@@ -339,7 +339,7 @@ class Parser:
 
         elif token.token_type is TokenType.IDENTIFIER:
 
-            if token.has_more_tokens():
+            if self.__scanner.has_more_tokens():
                 next_token = self.__scanner.next_token()
 
                 if next_token.value == '[':
