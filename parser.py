@@ -10,7 +10,7 @@ from exceptions import KeywordExpectedException,\
 from typing import Tuple
 
 class Parser:
-
+    
     def __init__(self, scanner: Scanner):
         self.__scanner = scanner
 
@@ -189,39 +189,98 @@ class Parser:
     """ STATEMENTS GRAMMAR """ 
 
     def compileStatements(self, indent : int)->str:
-        return ""
+        xml= [' ' * indent + '<statements>']
+        value = self.__scanner.current_token().value 
+
+        while value in ['let', 'if', 'while', 'return', 'do']:
+
+            if value == 'let':
+                xml.append(self.compileLet(indent+2))
+            elif value == 'if':
+                xml.append(self.compileIf(indent+2))
+            elif value == 'while':
+                xml.append(self.compileWhile(indent+2))
+            elif value == 'return':
+                xml.append(self.compileReturn(indent+2))
+            elif value == 'do':
+                xml.append(self.compileDo(indent+2))
+
+            value = self.__scanner.current_token().value 
+
+        xml.append(' ' * indent + '</statements>')
+        return ''.join(xml)
+
 
     def compileDo(self, indent : int)->str:
-        pass
+        xml= [' ' * indent + '<doStatement>']
+
+        xml.append(self.compileKeyword(indent+2, True, 'do'))
+
+        xml.append(self.compileSubroutine(indent+2))
+
+        xml.append(self.compileSymbol(indent+2, True, ';'))
+        xml.append(' ' * indent + '</doStatement>')
+        return ''.join(xml)
 
     def compileLet(self, indent : int)->str:
         pass
 
     def compileWhile(self, indent : int)->str:
-        pass
+        xml= [' ' * indent + '<whileStatement>']
+        xml.append(self.compileKeyword(indent+2, True, 'while'))
+        self.__compileBasicStatement(xml, indent)
+        xml.append(' ' * indent + '</whileStatement>')
+
+        return ''.join(xml)
 
     def compileReturn(self, indent : int)->str:
-        pass
+        xml= [' ' * indent + '<returnStatement>']
+        xml.append(self.compileKeyword(indent+2, True, 'return'))
+
+        if not self.__scanner.current_token().value == ';':
+            xml.append(self.compileExpression(indent+2))
+
+        xml.append(self.compileSymbol(indent+2, True, ';'))
+        xml.append(' ' * indent + '</returnStatement>')
+        return ''.join(xml)
 
     def compileIf(self, indent : int)->str:
-        pass
-    
+        xml= [' ' * indent + '<ifStatement>']
+
+        xml.append(self.compileKeyword(indent+2, True, 'if'))
+        self.__compileBasicStatement(xml, indent)
+
+        if self.__scanner.current_token().value == 'else':
+
+            xml.append(self.compileKeyword(indent+2, True, 'else'))
+            xml.append(self.compileSymbol(indent+2, True, '{'))
+            xml.append(self.compileStatements(indent+2))
+            xml.append(self.compileSymbol(indent+2, True, '}'))
+
+        xml.append(' ' * indent + '</ifStatement>')
+        return ''.join(xml)
+
+    def __compileBasicStatement(self, xml, indent) -> None:
+
+        xml.append(self.compileSymbol(indent+2, True, '('))
+        xml.append(self.compileExpression(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, ')'))
+
+        xml.append(self.compileSymbol(indent+2, True, '{'))
+        xml.append(self.compileStatements(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, '}'))
+
+
     """ EXPRESSIONS GRAMMAR """
 
     def compileExpression(self, indent : int)->str:
-        pass
+
+        xml= [' ' * indent + '<expression>']
+        xml.append(' ' * indent + '</expression>')
+        return ''.join(xml)
 
     def compileTerm(self, indent : int)->str:
         pass
 
     def compileExpressionList(self, indent : int)->str:
-        pass
-
-    def compileOp(self, indent : int)->str:
-        pass
-
-    def compileUnaryOp(self, indent : int)->str:
-        pass
-
-    def compileKeywordConstant(self, indent : int)->str:
         pass
