@@ -37,7 +37,7 @@ class Scanner:
                 if char == '"':
 
                     if string_processing:
-                        all_tokens.append(current_token + '"')
+                        all_tokens.append(Token(current_token + '"'))
                         current_token = ''
                     else:
                         current_token += char
@@ -46,8 +46,8 @@ class Scanner:
 
                 elif (char in Token.symbols or empty_pattern.match(char)) and not string_processing:
 
-                    if current_token != '': all_tokens.append(current_token)
-                    if char in Token.symbols: all_tokens.append(char)
+                    if current_token != '': all_tokens.append(Token(current_token))
+                    if char in Token.symbols: all_tokens.append(Token(char))
 
                     current_token = ''
 
@@ -60,12 +60,24 @@ class Scanner:
 
     def __clean_jack_file(self, lines: List[str]) -> List[str]:
 
-        comment_pattern = re.compile(r'(.*)(//.*)?')
+        comment_pattern = re.compile(r'^(.*?)((/\*\*?|//).*)?$')
+        asterisk_comment_pattern = re.compile(r'/\*\*?.*')
+
         filtered_lines = []
-        for line in lines:
+        line_index = 0
+
+        while line_index < len(lines):
+
+            line = lines[line_index]
             if comment_pattern.match(line.strip()):
                 necessary_tokens = comment_pattern.match(line.strip()).group(1)
                 if necessary_tokens != '': filtered_lines.append(necessary_tokens)
+
+            if asterisk_comment_pattern.search(line.strip()):
+                while not lines[line_index].strip().endswith('*/'):
+                    line_index += 1
+
+            line_index += 1
 
         return filtered_lines
 
