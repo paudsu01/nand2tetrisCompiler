@@ -189,7 +189,7 @@ class Parser:
     """ STATEMENTS GRAMMAR """ 
 
     def compileStatements(self, indent : int)->str:
-        xml= [' ' * indent + '<statements>']
+        xml= [' ' * indent + '<statements>\n']
         value = self.__scanner.current_token().value 
 
         while value in ['let', 'if', 'while', 'return', 'do']:
@@ -207,45 +207,60 @@ class Parser:
 
             value = self.__scanner.current_token().value 
 
-        xml.append(' ' * indent + '</statements>')
+        xml.append(' ' * indent + '</statements>\n')
         return ''.join(xml)
 
 
     def compileDo(self, indent : int)->str:
-        xml= [' ' * indent + '<doStatement>']
+        xml= [' ' * indent + '<doStatement>\n']
 
         xml.append(self.compileKeyword(indent+2, True, 'do'))
-
-        xml.append(self.compileSubroutine(indent+2))
-
+        xml.append(self.compileSubroutineCall(indent))
         xml.append(self.compileSymbol(indent+2, True, ';'))
-        xml.append(' ' * indent + '</doStatement>')
+
+        xml.append(' ' * indent + '</doStatement>\n')
         return ''.join(xml)
 
     def compileLet(self, indent : int)->str:
-        pass
+        xml= [' ' * indent + '<letStatement>\n']
+
+        xml.append(self.compileKeyword(indent+2, True, 'let'))
+        xml.append(self.compileIdentifier(indent+2))
+        
+        if self.__scanner.current_token().value == '[':
+            xml.append(self.compileSymbol(indent+2, True, '['))
+            xml.append(self.compileExpression(indent+2))
+            xml.append(self.compileSymbol(indent+2, True, ']'))
+
+        xml.append(self.compileSymbol(indent+2, True, '='))
+        xml.append(self.compileExpression(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, ';'))
+
+        xml.append(' ' * indent + '</letStatement>\n')
+        return ''.join(xml)
+
 
     def compileWhile(self, indent : int)->str:
-        xml= [' ' * indent + '<whileStatement>']
+        xml= [' ' * indent + '<whileStatement>\n']
         xml.append(self.compileKeyword(indent+2, True, 'while'))
         self.__compileBasicStatement(xml, indent)
-        xml.append(' ' * indent + '</whileStatement>')
+        xml.append(' ' * indent + '</whileStatement>\n')
 
         return ''.join(xml)
 
     def compileReturn(self, indent : int)->str:
-        xml= [' ' * indent + '<returnStatement>']
+        xml= [' ' * indent + '<returnStatement>\n']
         xml.append(self.compileKeyword(indent+2, True, 'return'))
 
         if not self.__scanner.current_token().value == ';':
             xml.append(self.compileExpression(indent+2))
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
-        xml.append(' ' * indent + '</returnStatement>')
+        xml.append(' ' * indent + '</returnStatement>\n')
         return ''.join(xml)
 
     def compileIf(self, indent : int)->str:
-        xml= [' ' * indent + '<ifStatement>']
+        xml= [' ' * indent + '<ifStatement>\n']
 
         xml.append(self.compileKeyword(indent+2, True, 'if'))
         self.__compileBasicStatement(xml, indent)
@@ -257,7 +272,23 @@ class Parser:
             xml.append(self.compileStatements(indent+2))
             xml.append(self.compileSymbol(indent+2, True, '}'))
 
-        xml.append(' ' * indent + '</ifStatement>')
+        xml.append(' ' * indent + '</ifStatement>\n')
+        return ''.join(xml)
+    
+    def compileSubroutineCall(self, indent: int) -> str:
+        
+        xml= []
+
+        xml.append(self.compileIdentifier(indent+2))
+
+        if self.__scanner.current_token().value == '.':
+            xml.append(self.compileSymbol(indent+2, True, '.'))
+            xml.append(self.compileIdentifier(indent+2))
+
+        xml.append(self.compileSymbol(indent+2, True, '('))
+        xml.append(self.compileExpressionList(indent+2))
+        xml.append(self.compileSymbol(indent+2, True, ')'))
+
         return ''.join(xml)
 
     def __compileBasicStatement(self, xml, indent) -> None:
@@ -270,17 +301,20 @@ class Parser:
         xml.append(self.compileStatements(indent+2))
         xml.append(self.compileSymbol(indent+2, True, '}'))
 
-
     """ EXPRESSIONS GRAMMAR """
 
     def compileExpression(self, indent : int)->str:
 
-        xml= [' ' * indent + '<expression>']
-        xml.append(' ' * indent + '</expression>')
+        xml= [' ' * indent + '<expression>\n']
+        xml.append(self.compileIntegerConstant(indent+2))
+        xml.append(' ' * indent + '</expression>\n')
         return ''.join(xml)
 
     def compileTerm(self, indent : int)->str:
         pass
 
     def compileExpressionList(self, indent : int)->str:
-        pass
+        xml= [' ' * indent + '<expressionList>\n']
+        xml.append(self.compileIntegerConstant(indent+2))
+        xml.append(' ' * indent + '</expressionList>\n')
+        return ''.join(xml)
