@@ -8,6 +8,7 @@ from exceptions import KeywordExpectedException,\
         SpecificSymbolExpectedException
 
 from typing import Tuple
+from symbol_table import SymbolTable
 
 class Parser:
     
@@ -112,13 +113,20 @@ class Parser:
 
         xml = [' ' * indent + '<classVarDec>\n']
 
+
+        var_type = self.__scanner.current_token().value
         xml.append(self.compileKeyword(indent+2, True, "static", "field"))
         xml.append(self.compileType(indent+2))
+        identifier = self.__scanner.current_token().value
         xml.append(self.compileIdentifier(indent+2))
+
+        SymbolTable.add(identifier, var_type)
 
         while self.__scanner.current_token().value == ',':
             xml.append(self.compileSymbol(indent+2, True,","))
+            identifier = self.__scanner.current_token().value
             xml.append(self.compileIdentifier(indent+2))
+            SymbolTable.add(identifier, var_type)
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
         xml.append(' ' * indent + '</classVarDec>\n')
@@ -133,7 +141,11 @@ class Parser:
 
         xml = [' ' * indent + '<subroutineDec>\n']
 
+        subroutine_type = self.__scanner.current_token().value 
         xml.append(self.compileKeyword(indent+2, True, "constructor", "function", "method"))
+
+        if subroutine_type != 'constructor':
+            SymbolTable.set_argument_counter_to_one()
 
         if self.__scanner.current_token().value == 'void':
             xml.append(self.compileKeyword(indent+2, True, "void"))
@@ -171,12 +183,16 @@ class Parser:
         if not current_token.token_type is TokenType.SYMBOL:
 
             xml.append(self.compileType(indent+2))
+            identifier = self.__scanner.current_token().value
             xml.append(self.compileIdentifier(indent+2))
+            SymbolTable.add(identifier, 'arg')
 
             while self.__scanner.current_token().value == ',':
                 xml.append(self.compileSymbol(indent+2, True, ','))
                 xml.append(self.compileType(indent+2))
+                identifier = self.__scanner.current_token().value
                 xml.append(self.compileIdentifier(indent+2))
+                SymbolTable.add(identifier, 'arg')
 
         xml.append(' '* indent + '</parameterList>\n')
         return ''.join(xml)
@@ -186,11 +202,17 @@ class Parser:
 
         xml.append(self.compileKeyword(indent+2, True, 'var'))
         xml.append(self.compileType(indent+2))
+
+        current_token = self.__scanner.current_token()
         xml.append(self.compileIdentifier(indent+2))
+
+        SymbolTable.add(current_token.value, 'var')
 
         while self.__scanner.current_token().value == ',':
             xml.append(self.compileSymbol(indent+2, True, ','))
+            current_token = self.__scanner.current_token()
             xml.append(self.compileIdentifier(indent+2))
+            SymbolTable.add(current_token.value, 'var')
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
         xml.append(' '* indent + '</varDec>\n')
@@ -268,6 +290,9 @@ class Parser:
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
         xml.append(' ' * indent + '</returnStatement>\n')
+
+        SymbolTable.reset_subroutine_table()
+
         return ''.join(xml)
 
     def compileIf(self, indent : int)->str:
