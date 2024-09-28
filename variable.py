@@ -30,6 +30,13 @@ class Variable:
         return self.__var_type
 
     @property
+    def memory_segment(self) -> str:
+        memorySegment = self.type.name
+        if memorySegment == 'field': 
+            memorySegment = 'this'
+        return memorySegment
+
+    @property
     def index(self) -> int:
         return self.__index
 

@@ -16,6 +16,8 @@ class Parser:
     def __init__(self, scanner: Scanner, className: str):
         self.__scanner = scanner
         self.__vm_writer = VM_writer(className)
+        self.__class_name = className
+        self.__label_number = 0
 
     """ LEXICAL ELEMENTS """
 
@@ -261,6 +263,7 @@ class Parser:
         xml= [' ' * indent + '<letStatement>\n']
 
         xml.append(self.compileKeyword(indent+2, True, 'let'))
+        variable = SymbolTable.get_variable(self.__scanner.current_token().value)
         xml.append(self.compileIdentifier(indent+2))
         
         if self.__scanner.current_token().value == '[':
@@ -272,15 +275,24 @@ class Parser:
         xml.append(self.compileExpression(indent+2))
         xml.append(self.compileSymbol(indent+2, True, ';'))
 
+        self.__vm_writer.write_pop(variable.memory_segment, variable.index)
+
         xml.append(' ' * indent + '</letStatement>\n')
         return ''.join(xml)
 
 
     def compileWhile(self, indent : int)->str:
         xml= [' ' * indent + '<whileStatement>\n']
+
+        self.__vm_writer.write_label(f'{self.__class_name}$secondLabel${self.__label_number}')
+
         xml.append(self.compileKeyword(indent+2, True, 'while'))
         self.__compileBasicStatement(xml, indent)
         xml.append(' ' * indent + '</whileStatement>\n')
+
+        self.__vm_writer.write_label(f'{self.__class_name}$not_true${self.__label_number}')
+
+        self.__label_number += 1
 
         return ''.join(xml)
 
@@ -290,6 +302,10 @@ class Parser:
 
         if not self.__scanner.current_token().value == ';':
             xml.append(self.compileExpression(indent+2))
+        else:
+            self.__vm_writer.write_push("constant", 0)
+
+        self.__vm_writer.write_return()
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
         xml.append(' ' * indent + '</returnStatement>\n')
@@ -303,6 +319,7 @@ class Parser:
 
         xml.append(self.compileKeyword(indent+2, True, 'if'))
         self.__compileBasicStatement(xml, indent)
+        self.__vm_writer.write_label(f'{self.__class_name}$not_true${self.__label_number}')
 
         if self.__scanner.current_token().value == 'else':
 
@@ -311,22 +328,31 @@ class Parser:
             xml.append(self.compileStatements(indent+2))
             xml.append(self.compileSymbol(indent+2, True, '}'))
 
+        self.__vm_writer.write_label(f'{self.__class_name}$secondLabel${self.__label_number}')
+        self.__label_number += 1
+
         xml.append(' ' * indent + '</ifStatement>\n')
         return ''.join(xml)
     
     def compileSubroutineCall(self, indent: int) -> str:
         
         xml= []
+        basic_args = 0
 
+        subroutine_name = self.__scanner.current_token().value
         xml.append(self.compileIdentifier(indent+2))
 
         if self.__scanner.current_token().value == '.':
             xml.append(self.compileSymbol(indent+2, True, '.'))
+            subroutine_name = self.__scanner.current_token().value
             xml.append(self.compileIdentifier(indent+2))
+            basic_args = 1 if subroutine_name != 'new' else 0
 
         xml.append(self.compileSymbol(indent+2, True, '('))
-        xml.append(self.compileExpressionList(indent+2))
+        xml_to_append, n_args = (self.compileExpressionList(indent+2))
+        xml.append(xml_to_append)
         xml.append(self.compileSymbol(indent+2, True, ')'))
+        self.__vm_writer.write_call(subroutine_name, n_args+basic_args)
 
         return ''.join(xml)
 
@@ -334,11 +360,17 @@ class Parser:
 
         xml.append(self.compileSymbol(indent+2, True, '('))
         xml.append(self.compileExpression(indent+2))
+
+        self.__vm_writer.write_arithmetic('~')
+        self.__vm_writer.write_if(f'{self.__class_name}$not_true${self.__label_number}')
+
         xml.append(self.compileSymbol(indent+2, True, ')'))
 
         xml.append(self.compileSymbol(indent+2, True, '{'))
         xml.append(self.compileStatements(indent+2))
         xml.append(self.compileSymbol(indent+2, True, '}'))
+
+        self.__vm_writer.write_goto(f'{self.__class_name}$secondLabel${self.__label_number}')
 
     """ EXPRESSIONS GRAMMAR """
 
@@ -353,7 +385,7 @@ class Parser:
             xml.append(self.compileSymbol(indent+2))
             xml.append(self.compileTerm(indent+2))
 
-            VM_writer.write_arithmetic(op_token)
+            self.__vm_writer.write_arithmetic(op_token)
 
         xml.append(' ' * indent + '</expression>\n')
         return ''.join(xml)
@@ -364,7 +396,7 @@ class Parser:
 
         if token.token_type is TokenType.INTEGER_CONSTANT:
             xml.append(self.compileIntegerConstant(indent+2))
-            VM_writer.write_push('constant', token.value)
+            self.__vm_writer.write_push('constant', token.value)
 
         elif token.token_type is TokenType.KEYWORD:
             xml.append(self.compileKeyword(indent+2))
@@ -380,7 +412,7 @@ class Parser:
         elif token.value in ['-', '~']:
             xml.append(self.compileSymbol(indent+2, True, token.value))
             xml.append(self.compileTerm(indent+2))
-            VM_writer.write_arithmetic(token.value)
+            self.__vm_writer.write_arithmetic(token.value)
 
         elif token.token_type is TokenType.IDENTIFIER:
 
@@ -399,16 +431,11 @@ class Parser:
                 else:
                     xml.append(self.compileIdentifier(indent+2))
 
+                    variable = SymbolTable.get_variable(token.value)
+                    self.__vm_writer.write_push(variable.memory_segment, variable.index)
+
             else:
                 xml.append(self.compileIdentifier(indent+2))
-
-                variable = SymbolTable.get_variable(token.value)
-                memorySegment = variable.type.name
-                if memorySegment == 'field': 
-                    memorySegment = 'this'
-
-                VM_writer.write_push(memorySegment, variable.index)
-
  
         xml.append(' '* indent+ '</term>\n')
         return ''.join(xml)
@@ -417,11 +444,14 @@ class Parser:
     def compileExpressionList(self, indent : int)->str:
         xml= [' ' * indent + '<expressionList>\n']
 
+        number_of_args = 0
         if self.__scanner.current_token().value != ')':
             xml.append(self.compileExpression(indent+2))
+            number_of_args += 1
             while self.__scanner.current_token().value == ',':
                 xml.append(self.compileSymbol(indent+2, True, ','))
                 xml.append(self.compileExpression(indent+2))
+                number_of_args += 1
 
         xml.append(' ' * indent + '</expressionList>\n')
-        return ''.join(xml)
+        return (''.join(xml), number_of_args)
