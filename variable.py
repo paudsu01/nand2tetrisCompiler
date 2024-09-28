@@ -2,19 +2,19 @@ from enum import Enum
 
 class VariableType(Enum):
     
-    STATIC = 0
-    FIELD = 1
-    LOCAL = 2
-    ARGUMENT = 3
-    NONE = 4
+    static = 0
+    field = 1
+    local = 2
+    argument = 3
+    none = 4
 
 class Variable:
 
     var_type_to_enum = {
-        'static': VariableType.STATIC,
-         'field': VariableType.FIELD,
-         'var': VariableType.LOCAL,
-         'arg': VariableType.ARGUMENT
+        'static': VariableType.static,
+         'field': VariableType.field,
+         'var': VariableType.local,
+         'arg': VariableType.argument
             }
 
     def __init__(self, identifier: str, var_type: str):

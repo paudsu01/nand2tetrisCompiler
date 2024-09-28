@@ -9,11 +9,13 @@ from exceptions import KeywordExpectedException,\
 
 from typing import Tuple
 from symbol_table import SymbolTable
+from vm_writer import VM_writer
 
 class Parser:
     
-    def __init__(self, scanner: Scanner):
+    def __init__(self, scanner: Scanner, className: str):
         self.__scanner = scanner
+        self.__vm_writer = VM_writer(className)
 
     """ LEXICAL ELEMENTS """
 
@@ -105,7 +107,8 @@ class Parser:
 
         xml.append(self.compileSymbol(indent+2, True, '}'))
         xml.append('</class>')
-
+    
+        self.__vm_writer.close()
         return ''.join(xml)
 
 
@@ -345,8 +348,12 @@ class Parser:
         
         xml.append(self.compileTerm(indent+2))
         while self.__scanner.current_token().value in ['+', '-', '*', '/', '&', '|', '<', '>', '=']:
+            op_token = self.__scanner.current_token().value
+
             xml.append(self.compileSymbol(indent+2))
             xml.append(self.compileTerm(indent+2))
+
+            VM_writer.write_arithmetic(op_token)
 
         xml.append(' ' * indent + '</expression>\n')
         return ''.join(xml)
@@ -357,6 +364,7 @@ class Parser:
 
         if token.token_type is TokenType.INTEGER_CONSTANT:
             xml.append(self.compileIntegerConstant(indent+2))
+            VM_writer.write_push('constant', token.value)
 
         elif token.token_type is TokenType.KEYWORD:
             xml.append(self.compileKeyword(indent+2))
@@ -372,6 +380,7 @@ class Parser:
         elif token.value in ['-', '~']:
             xml.append(self.compileSymbol(indent+2, True, token.value))
             xml.append(self.compileTerm(indent+2))
+            VM_writer.write_arithmetic(token.value)
 
         elif token.token_type is TokenType.IDENTIFIER:
 
@@ -392,6 +401,14 @@ class Parser:
 
             else:
                 xml.append(self.compileIdentifier(indent+2))
+
+                variable = SymbolTable.get_variable(token.value)
+                memorySegment = variable.type.name
+                if memorySegment == 'field': 
+                    memorySegment = 'this'
+
+                VM_writer.write_push(memorySegment, variable.index)
+
  
         xml.append(' '* indent+ '</term>\n')
         return ''.join(xml)

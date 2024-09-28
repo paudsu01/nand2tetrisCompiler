@@ -2,9 +2,9 @@ from __future__ import annotations
 
 class VM_writer:
 
-    def __init(self, filename: str):
+    def __init__(self, filename: str):
         self.__filename = filename
-        self.__output_file = open(filename, 'w')
+        self.__output_file = open(f'{filename}.vm', 'w')
 
     def write_push(self, memorySegment: str, index: int) -> None:
         self.__output_file.write(f'\tpush {memorySegment} {index}\n')

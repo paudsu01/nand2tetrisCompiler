@@ -28,22 +28,22 @@ class SymbolTable:
     def add(cls, identifier: str, var_type: str):
         variable = Variable(identifier, var_type)
 
-        if variable.type is VariableType.STATIC:
+        if variable.type is VariableType.static:
             variable.index = cls.__STATIC_COUNTER
             cls.__STATIC_COUNTER += 1
             cls.__IDENTIFIER_TO_VAR_CLASS_MAPPING[identifier] = variable
 
-        elif variable.type is VariableType.FIELD:
+        elif variable.type is VariableType.field:
             variable.index = cls.__FIELD_COUNTER
             cls.__FIELD_COUNTER += 1
             cls.__IDENTIFIER_TO_VAR_CLASS_MAPPING[identifier] = variable
 
-        elif variable.type is VariableType.LOCAL:
+        elif variable.type is VariableType.local:
             variable.index = cls.__LOCAL_COUNTER
             cls.__LOCAL_COUNTER += 1
             cls.__IDENTIFIER_TO_VAR_SUBROUTINE_MAPPING[identifier] = variable
 
-        elif variable.type is VariableType.ARGUMENT:
+        elif variable.type is VariableType.argument:
             variable.index = cls.__ARGUMENT_COUNTER
             cls.__ARGUMENT_COUNTER += 1
             cls.__IDENTIFIER_TO_VAR_SUBROUTINE_MAPPING[identifier] = variable

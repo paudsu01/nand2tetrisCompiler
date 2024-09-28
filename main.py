@@ -8,7 +8,7 @@ from scanner import Scanner
 from symbol_table import SymbolTable
 
 def generate_xml_file(file, outFileName: str) -> None:
-    myParser = Parser(Scanner(file))
+    myParser = Parser(Scanner(file), outFileName)
     with open(f'{outFileName}.xml', 'w') as out:
         out.write(myParser.compileClass())
     SymbolTable.reset_class_table()
