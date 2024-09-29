@@ -474,6 +474,13 @@ class Parser:
         elif token.token_type is TokenType.KEYWORD:
             xml.append(self.compileKeyword(indent+2))
 
+            if token.value in ['false', 'null']:
+                self.__vm_writer.write_push('constant', 0)
+
+            elif token.value == 'true':
+                self.__vm_writer.write_push('constant', 1)
+                self.__vm_writer.write_arithmetic('~')
+
         elif token.token_type is TokenType.STRING_CONSTANT:
             xml.append(self.compileStringConstant(indent+2))
 
