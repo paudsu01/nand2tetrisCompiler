@@ -17,7 +17,7 @@ class SymbolTable:
         if identifier in cls.__IDENTIFIER_TO_VAR_SUBROUTINE_MAPPING:
             return cls.__IDENTIFIER_TO_VAR_SUBROUTINE_MAPPING[identifier]
         else:
-            return cls.__IDENTIFIER_TO_VAR_SUBROUTINE_MAPPING.get(identifier)
+            return cls.__IDENTIFIER_TO_VAR_CLASS_MAPPING.get(identifier)
 
     @classmethod
     def contains(cls, identifier: str) -> True:

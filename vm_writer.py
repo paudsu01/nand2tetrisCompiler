@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import os
+
 class VM_writer:
 
     __operand_to_command_mapping = {
@@ -12,11 +14,12 @@ class VM_writer:
             '<': 'lt',
             '>': 'gt',
             '=': 'eq',
+            '~':'not',
     }
 
-    def __init__(self, filename: str):
+    def __init__(self, filename: str, full_path: str):
         self.__filename = filename
-        self.__output_file = open(f'{filename}.vm', 'w')
+        self.__output_file = open(os.path.join(os.path.dirname(full_path), f'{filename}.vm'), 'w')
 
     def write_push(self, memorySegment: str, index: int) -> None:
         self.__output_file.write(f'\tpush {memorySegment} {index}\n')

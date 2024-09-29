@@ -7,16 +7,16 @@ from parser import Parser
 from scanner import Scanner
 from symbol_table import SymbolTable
 
-def generate_vm_file(file, outFileName: str) -> None:
+def generate_vm_file(full_path: str, outFileName: str) -> None:
 
-    myParser = Parser(Scanner(file), outFileName)
+    myParser = Parser(Scanner(full_path), outFileName, full_path)
     myParser.compileClass()
     SymbolTable.reset_class_table()
 
-def main(file)-> None:
-    match = jack_file_pattern.match(file)
+def main(full_path: str)-> None:
+    match = jack_file_pattern.match(full_path)
     if match:
-        generate_vm_file(file, match.group(2))
+        generate_vm_file(full_path, match.group(2))
 
 if __name__ == '__main__':
     arg_parser = argparse.ArgumentParser()
@@ -33,15 +33,15 @@ if __name__ == '__main__':
     else:
         # assume it is a directory and handle all the jack files in the directory
         try:
-            dir_path = os.path.join(os.getcwd(), file_or_dir)
-            all_files = os.listdir(dir_path)
-            for file in all_files:
-                main(file)
-
+            main_path = os.path.join(os.getcwd(), file_or_dir)
+            all_files = os.listdir(main_path)
         except FileNotFoundError:
 
             raise FileNotFoundError(
                     "No such directory exists!: Provide a valid directory with .jack files to compile or a single .jack file"
                     )
+        for file in all_files:
+            file_path = os.path.join(main_path, file)
+            main(file_path)
 
 
