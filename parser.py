@@ -294,10 +294,13 @@ class Parser:
     def compileReturn(self, constructor: False) -> None:
         self.compileKeyword(True, 'return')
 
-        if not self.__scanner.current_token().value == ';':
-            self.compileExpression()
-        elif constructor:
+        if constructor:
+            self.compileKeyword(True, 'this')
             self.__vm_writer.write_push("pointer", 0)
+
+        elif not self.__scanner.current_token().value == ';':
+            self.compileExpression()
+
         else:
             self.__vm_writer.write_push("constant", 0)
 
@@ -325,17 +328,20 @@ class Parser:
         self.compileStatements()
         self.compileSymbol(True, '}')
 
-        self.__vm_writer.write_goto(f'IF_END{label_number}')
-        self.__vm_writer.write_label(f'IF_FALSE{label_number}')
 
         if self.__scanner.current_token().value == 'else':
+
+            self.__vm_writer.write_goto(f'IF_END{label_number}')
+            self.__vm_writer.write_label(f'IF_FALSE{label_number}')
 
             self.compileKeyword(True, 'else')
             self.compileSymbol(True, '{')
             self.compileStatements()
             self.compileSymbol(True, '}')
 
-        self.__vm_writer.write_label(f'IF_END{label_number}')
+            self.__vm_writer.write_label(f'IF_END{label_number}')
+        else:
+            self.__vm_writer.write_label(f'IF_FALSE{label_number}')
 
 
     def compileSubroutineCall(self) -> None:
@@ -405,6 +411,9 @@ class Parser:
             elif token.value == 'true':
                 self.__vm_writer.write_push('constant', 0)
                 self.__vm_writer.write_arithmetic('~')
+
+            elif token.value == 'this':
+                self.__vm_writer.write_push('pointer', 0)
 
         elif token.token_type is TokenType.STRING_CONSTANT:
             self.compileStringConstant()
