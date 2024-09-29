@@ -62,6 +62,12 @@ class Parser:
         if not (current_token.token_type is TokenType.STRING_CONSTANT):
             raise SymbolExpectedException(f'StringConstant expected: got {current_token.value} instead')
 
+        self.__vm_writer.write_push("constant", len(current_token.value))
+        self.__vm_writer.write_call("String.new", 1)
+        for char in current_token.value:
+            self.__vm_writer.write_push("constant", ord(char))
+            self.__vm_writer.write_call("String.appendChar", 2)
+
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
 
 
