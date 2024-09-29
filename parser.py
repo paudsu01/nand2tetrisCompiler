@@ -13,11 +13,12 @@ from vm_writer import VM_writer
 
 class Parser:
     
-    def __init__(self, scanner: Scanner, className: str):
+    def __init__(self, scanner: Scanner, className: str, full_path: str):
         self.__scanner = scanner
-        self.__vm_writer = VM_writer(className)
+        self.__vm_writer = VM_writer(className, full_path)
         self.__class_name = className
-        self.__label_number = 0
+        self.__if_label_number = 0
+        self.__while_label_number = 0
 
     """ LEXICAL ELEMENTS """
 
@@ -160,7 +161,7 @@ class Parser:
         self.compileSymbol(True, ')')
 
         compileSubroutineBody()
-
+        SymbolTable.reset_subroutine_table()
 
     def compileParameterList(self) -> None:
 
@@ -269,14 +270,26 @@ class Parser:
 
 
     def compileWhile(self) -> None:
-        self.__vm_writer.write_label(f'{self.__class_name}$secondLabel${self.__label_number}')
+        label_number = self.__while_label_number
+        self.__while_label_number += 1
+        self.__vm_writer.write_label(f'WHILE_EXP{label_number}')
         self.compileKeyword(True, 'while')
 
-        self.__compileBasicStatement()
-        self.__vm_writer.write_label(f'{self.__class_name}$not_true${self.__label_number}')
 
-        self.__label_number += 1
+        self.compileSymbol(True, '(')
+        self.compileExpression()
 
+        self.__vm_writer.write_arithmetic('~')
+        self.__vm_writer.write_if(f'WHILE_END{label_number}')
+
+        self.compileSymbol(True, ')')
+
+        self.compileSymbol(True, '{')
+        self.compileStatements()
+        self.compileSymbol(True, '}')
+
+        self.__vm_writer.write_goto(f'WHILE_EXP{label_number}')
+        self.__vm_writer.write_label(f'WHILE_END{label_number}')
 
     def compileReturn(self, constructor: False) -> None:
         self.compileKeyword(True, 'return')
@@ -291,12 +304,29 @@ class Parser:
         self.__vm_writer.write_return()
 
         self.compileSymbol(True, ';')
-        SymbolTable.reset_subroutine_table()
 
     def compileIf(self) -> None:
+
         self.compileKeyword(True, 'if')
-        self.__compileBasicStatement()
-        self.__vm_writer.write_label(f'{self.__class_name}$not_true${self.__label_number}')
+
+        label_number = self.__if_label_number
+        self.__if_label_number += 1
+
+        self.compileSymbol(True, '(')
+        self.compileExpression()
+
+        self.__vm_writer.write_if(f'IF_TRUE{label_number}')
+        self.__vm_writer.write_goto(f'IF_FALSE{label_number}')
+        self.__vm_writer.write_label(f'IF_TRUE{label_number}')
+
+        self.compileSymbol(True, ')')
+
+        self.compileSymbol(True, '{')
+        self.compileStatements()
+        self.compileSymbol(True, '}')
+
+        self.__vm_writer.write_goto(f'IF_END{label_number}')
+        self.__vm_writer.write_label(f'IF_FALSE{label_number}')
 
         if self.__scanner.current_token().value == 'else':
 
@@ -305,8 +335,7 @@ class Parser:
             self.compileStatements()
             self.compileSymbol(True, '}')
 
-        self.__vm_writer.write_label(f'{self.__class_name}$secondLabel${self.__label_number}')
-        self.__label_number += 1
+        self.__vm_writer.write_label(f'IF_END{label_number}')
 
 
     def compileSubroutineCall(self) -> None:
@@ -345,21 +374,6 @@ class Parser:
         else:
             self.__vm_writer.write_call(f'{class_name}.{method_name}', n_args+basic_args)
 
-    def __compileBasicStatement(self) -> None:
-
-        self.compileSymbol(True, '(')
-        self.compileExpression()
-
-        self.__vm_writer.write_arithmetic('~')
-        self.__vm_writer.write_if(f'{self.__class_name}$not_true${self.__label_number}')
-
-        self.compileSymbol(True, ')')
-
-        self.compileSymbol(True, '{')
-        self.compileStatements()
-        self.compileSymbol(True, '}')
-
-        self.__vm_writer.write_goto(f'{self.__class_name}$secondLabel${self.__label_number}')
 
     """ EXPRESSIONS GRAMMAR """
 
@@ -389,7 +403,7 @@ class Parser:
                 self.__vm_writer.write_push('constant', 0)
 
             elif token.value == 'true':
-                self.__vm_writer.write_push('constant', 1)
+                self.__vm_writer.write_push('constant', 0)
                 self.__vm_writer.write_arithmetic('~')
 
         elif token.token_type is TokenType.STRING_CONSTANT:
@@ -403,7 +417,10 @@ class Parser:
         elif token.value in ['-', '~']:
             self.compileSymbol(True, token.value)
             self.compileTerm()
-            self.__vm_writer.write_arithmetic(token.value)
+            if token.value == '-':
+                self.__vm_writer.write_arithmetic('neg')
+            else:
+                self.__vm_writer.write_arithmetic(token.value)
 
         elif token.token_type is TokenType.IDENTIFIER:
 
