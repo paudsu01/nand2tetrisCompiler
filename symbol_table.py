@@ -68,3 +68,7 @@ class SymbolTable:
     @classmethod
     def get_total_fields(cls):
         return cls.__FIELD_COUNTER
+
+    @classmethod
+    def get_total_locals(cls):
+        return cls.__LOCAL_COUNTER

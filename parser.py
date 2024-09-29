@@ -152,6 +152,33 @@ class Parser:
 
     def compileSubroutine(self, indent : int, constructor=False)->str:
 
+        def compileSubroutineBody() -> str:
+
+            nonlocal constructor
+
+            xml = [' ' * indent + '<subroutineBody>\n']
+            xml.append(self.compileSymbol(indent+2, True, '{'))
+
+            while self.__scanner.current_token().value == 'var':
+                xml.append(self.compileVarDec(indent+2))
+    
+            self.__vm_writer.write_function(f'{self.__class_name}.{function_name}', SymbolTable.get_total_locals())
+            if subroutine_type == 'method':
+                self.__vm_writer.write_push("argument", 0)
+                self.__vm_writer.write_pop("pointer", 0)
+
+            elif subroutine_type == 'constructor':
+                constructor = True
+                self.__vm_writer.write_push("constant", SymbolTable.get_total_fields())
+                self.__vm_writer.write_call("Memory.alloc", 1)
+                self.__vm_writer.write_pop("pointer", 0)
+
+            xml.append(self.compileStatements(indent+2, constructor))
+            xml.append(self.compileSymbol(indent+2, True, '}'))
+
+            xml.append(' ' * indent + '</subroutineBody>\n')
+            return ''.join(xml)
+
         xml = [' ' * indent + '<subroutineDec>\n']
 
         subroutine_type = self.__scanner.current_token().value 
@@ -159,43 +186,23 @@ class Parser:
 
         if subroutine_type == 'method':
             SymbolTable.set_argument_counter_to_one()
-            self.__vm_writer.write_push("argument", 0)
-            self.__vm_writer.write_pop("pointer", 0)
-
-        elif subroutine_type == 'constructor':
-            constructor = True
-            self.__vm_writer.write_push("constant", SymbolTable.get_total_fields())
-            self.__vm_writer.write_call("Memory.alloc", 1)
-            self.__vm_writer.write_pop("pointer", 0)
 
         if self.__scanner.current_token().value == 'void':
             xml.append(self.compileKeyword(indent+2, True, "void"))
         else:
             xml.append(self.compileType(indent+2))
 
+        function_name = self.__scanner.current_token().value 
         xml.append(self.compileIdentifier(indent+2))
+
         xml.append(self.compileSymbol(indent+2, True, '('))
         xml.append(self.compileParameterList(indent+2))
         xml.append(self.compileSymbol(indent+2, True, ')'))
 
-        xml.append(self.compileSubroutineBody((indent+2), constructor))
+        xml.append(compileSubroutineBody())
         xml.append(' ' * indent + '</subroutineDec>\n')
         return ''.join(xml)
     
-
-    def compileSubroutineBody(self, indent: int, constructor: bool) -> str:
-
-        xml = [' ' * indent + '<subroutineBody>\n']
-        xml.append(self.compileSymbol(indent+2, True, '{'))
-
-        while self.__scanner.current_token().value == 'var':
-            xml.append(self.compileVarDec(indent+2))
-
-        xml.append(self.compileStatements(indent+2, constructor))
-        xml.append(self.compileSymbol(indent+2, True, '}'))
-
-        xml.append(' ' * indent + '</subroutineBody>\n')
-        return ''.join(xml)
 
 
     def compileParameterList(self, indent : int)->str:
