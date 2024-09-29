@@ -64,3 +64,7 @@ class SymbolTable:
     @classmethod
     def set_argument_counter_to_one(cls):
         cls.__ARGUMENT_COUNTER = 1
+
+    @classmethod
+    def get_total_fields(cls):
+        return cls.__FIELD_COUNTER

@@ -118,7 +118,6 @@ class Parser:
 
         xml = [' ' * indent + '<classVarDec>\n']
 
-
         var_type = self.__scanner.current_token().value
         xml.append(self.compileKeyword(indent+2, True, "static", "field"))
         xml.append(self.compileType(indent+2))
@@ -142,7 +141,7 @@ class Parser:
         token = self.__scanner.current_token()
         return self.compileIdentifier(indent) if token.token_type is TokenType.IDENTIFIER else self.compileKeyword(indent, True, 'int', 'char', 'boolean')
 
-    def compileSubroutine(self, indent : int)->str:
+    def compileSubroutine(self, indent : int, constructor=False)->str:
 
         xml = [' ' * indent + '<subroutineDec>\n']
 
@@ -151,6 +150,11 @@ class Parser:
 
         if subroutine_type != 'constructor':
             SymbolTable.set_argument_counter_to_one()
+        else:
+            constructor = True
+            self.__vm_writer.write_push("constant", SymbolTable.get_total_fields())
+            self.__vm_writer.write_call("Memory.alloc", 1)
+            self.__vm_writer.write_pop("pointer", 0)
 
         if self.__scanner.current_token().value == 'void':
             xml.append(self.compileKeyword(indent+2, True, "void"))
@@ -162,11 +166,11 @@ class Parser:
         xml.append(self.compileParameterList(indent+2))
         xml.append(self.compileSymbol(indent+2, True, ')'))
 
-        xml.append(self.compileSubroutineBody(indent+2))
+        xml.append(self.compileSubroutineBody((indent+2), constructor))
         xml.append(' ' * indent + '</subroutineDec>\n')
         return ''.join(xml)
     
-    def compileSubroutineBody(self, indent: int) -> str:
+    def compileSubroutineBody(self, indent: int, constructor: bool) -> str:
 
         xml = [' ' * indent + '<subroutineBody>\n']
         xml.append(self.compileSymbol(indent+2, True, '{'))
@@ -174,7 +178,7 @@ class Parser:
         while self.__scanner.current_token().value == 'var':
             xml.append(self.compileVarDec(indent+2))
 
-        xml.append(self.compileStatements(indent+2))
+        xml.append(self.compileStatements(indent+2, constructor))
         xml.append(self.compileSymbol(indent+2, True, '}'))
 
         xml.append(' ' * indent + '</subroutineBody>\n')
@@ -226,7 +230,7 @@ class Parser:
 
     """ STATEMENTS GRAMMAR """ 
 
-    def compileStatements(self, indent : int)->str:
+    def compileStatements(self, indent : int, constructor=False)->str:
         xml= [' ' * indent + '<statements>\n']
         value = self.__scanner.current_token().value 
 
@@ -239,7 +243,7 @@ class Parser:
             elif value == 'while':
                 xml.append(self.compileWhile(indent+2))
             elif value == 'return':
-                xml.append(self.compileReturn(indent+2))
+                xml.append(self.compileReturn(indent+2, constructor))
             elif value == 'do':
                 xml.append(self.compileDo(indent+2))
 
@@ -296,12 +300,14 @@ class Parser:
 
         return ''.join(xml)
 
-    def compileReturn(self, indent : int)->str:
+    def compileReturn(self, indent : int, constructor: False)->str:
         xml= [' ' * indent + '<returnStatement>\n']
         xml.append(self.compileKeyword(indent+2, True, 'return'))
 
         if not self.__scanner.current_token().value == ';':
             xml.append(self.compileExpression(indent+2))
+        elif constructor:
+            self.__vm_writer.write_push("pointer", 0)
         else:
             self.__vm_writer.write_push("constant", 0)
 
@@ -352,7 +358,7 @@ class Parser:
         xml_to_append, n_args = (self.compileExpressionList(indent+2))
         xml.append(xml_to_append)
         xml.append(self.compileSymbol(indent+2, True, ')'))
-        self.__vm_writer.write_call(subroutine_name, n_args+basic_args)
+        self.__vm_writer.write_call(f'{self.__class_name}.{subroutine_name}', n_args+basic_args)
 
         return ''.join(xml)
 

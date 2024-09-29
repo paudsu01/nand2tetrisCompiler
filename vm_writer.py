@@ -25,10 +25,10 @@ class VM_writer:
         self.__output_file.write(f'\tif-goto {label}\n')
 
     def write_function(self, func_name: str, nlocals: int) -> None:
-        self.__output_file.write(f'\tfunction {self.__filename}.{func_name} {nlocals}\n')
+        self.__output_file.write(f'\tfunction {func_name} {nlocals}\n')
 
     def write_call(self, func_name: str, nargs: int) -> None:
-        self.__output_file.write(f'\tcall {self.__filename}.{func_name} {nargs}\n')
+        self.__output_file.write(f'\tcall {func_name} {nargs}\n')
 
     def write_return(self)-> None:
         self.__output_file.write('\treturn\n')
