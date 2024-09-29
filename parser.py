@@ -500,10 +500,17 @@ class Parser:
                 next_token = self.__scanner.next_token()
 
                 if next_token.value == '[':
+                    variable = SymbolTable.get_variable(token.value)
+                    self.__vm_writer.write_push(variable.memory_segment, variable.index)
+
                     xml.append(self.compileIdentifier(indent+2))
                     xml.append(self.compileSymbol(indent+2, True, '['))
                     xml.append(self.compileExpression(indent+2))
                     xml.append(self.compileSymbol(indent+2, True, ']'))
+
+                    self.__vm_writer.write_arithmetic('+')
+                    self.__vm_writer.write_pop('pointer', 1)
+                    self.__vm_writer.write_push('that', 0)
 
                 elif next_token.value == '(' or next_token.value == '.':
                     xml.append(self.compileSubroutineCall(indent))
