@@ -299,21 +299,35 @@ class Parser:
 
     def compileLet(self, indent : int)->str:
         xml= [' ' * indent + '<letStatement>\n']
+        array_let = False
 
         xml.append(self.compileKeyword(indent+2, True, 'let'))
         variable = SymbolTable.get_variable(self.__scanner.current_token().value)
         xml.append(self.compileIdentifier(indent+2))
         
         if self.__scanner.current_token().value == '[':
+            array_let = True
+
+            self.__vm_writer.write_push(variable.memory_segment, variable.index)
+
             xml.append(self.compileSymbol(indent+2, True, '['))
             xml.append(self.compileExpression(indent+2))
             xml.append(self.compileSymbol(indent+2, True, ']'))
+
+            self.__vm_writer.write_arithmetic('+')
 
         xml.append(self.compileSymbol(indent+2, True, '='))
         xml.append(self.compileExpression(indent+2))
         xml.append(self.compileSymbol(indent+2, True, ';'))
 
-        self.__vm_writer.write_pop(variable.memory_segment, variable.index)
+        if array_let:
+            self.__vm_writer.write_pop("temp", 0)
+            self.__vm_writer.write_pop("pointer", 1)
+            self.__vm_writer.write_push("temp", 0)
+            self.__vm_writer.write_pop("that", 0)
+
+        else:
+            self.__vm_writer.write_pop(variable.memory_segment, variable.index)
 
         xml.append(' ' * indent + '</letStatement>\n')
         return ''.join(xml)
