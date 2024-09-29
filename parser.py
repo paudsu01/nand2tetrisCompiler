@@ -157,9 +157,12 @@ class Parser:
         subroutine_type = self.__scanner.current_token().value 
         xml.append(self.compileKeyword(indent+2, True, "constructor", "function", "method"))
 
-        if subroutine_type != 'constructor':
+        if subroutine_type == 'method':
             SymbolTable.set_argument_counter_to_one()
-        else:
+            self.__vm_writer.write_push("argument", 0)
+            self.__vm_writer.write_pop("pointer", 0)
+
+        elif subroutine_type == 'constructor':
             constructor = True
             self.__vm_writer.write_push("constant", SymbolTable.get_total_fields())
             self.__vm_writer.write_call("Memory.alloc", 1)
@@ -281,6 +284,8 @@ class Parser:
         xml.append(self.compileKeyword(indent+2, True, 'do'))
         xml.append(self.compileSubroutineCall(indent))
         xml.append(self.compileSymbol(indent+2, True, ';'))
+
+        self.__vm_writer.write_pop("temp", 0)
 
         xml.append(' ' * indent + '</doStatement>\n')
         return ''.join(xml)
