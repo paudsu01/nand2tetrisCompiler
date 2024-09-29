@@ -253,12 +253,11 @@ class Parser:
         if self.__scanner.current_token().value == '[':
             array_let = True
 
-            self.__vm_writer.write_push(variable.memory_segment, variable.index)
 
             self.compileSymbol(True, '[')
             self.compileExpression()
             self.compileSymbol(True, ']')
-
+            self.__vm_writer.write_push(variable.memory_segment, variable.index)
             self.__vm_writer.write_arithmetic('+')
 
         self.compileSymbol(True, '=')
@@ -444,12 +443,12 @@ class Parser:
 
                 if next_token.value == '[':
                     variable = SymbolTable.get_variable(token.value)
-                    self.__vm_writer.write_push(variable.memory_segment, variable.index)
-
                     self.compileIdentifier()
                     self.compileSymbol(True, '[')
                     self.compileExpression()
                     self.compileSymbol(True, ']')
+
+                    self.__vm_writer.write_push(variable.memory_segment, variable.index)
 
                     self.__vm_writer.write_arithmetic('+')
                     self.__vm_writer.write_pop('pointer', 1)
