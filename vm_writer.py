@@ -2,6 +2,18 @@ from __future__ import annotations
 
 class VM_writer:
 
+    __operand_to_command_mapping = {
+            '+':'add',
+            '-':'sub',
+            '*': 'call Math.multiply 2',
+            '/': 'call Math.divide 2',
+            '&': 'and',
+            '|': 'or',
+            '<': 'lt',
+            '>': 'gt',
+            '=': 'eq',
+    }
+
     def __init__(self, filename: str):
         self.__filename = filename
         self.__output_file = open(f'{filename}.vm', 'w')
@@ -13,7 +25,7 @@ class VM_writer:
         self.__output_file.write(f'\tpop {memorySegment} {index}\n')
 
     def write_arithmetic(self, command : str) -> None:
-        self.__output_file.write(f'\t{command}\n')
+        self.__output_file.write(f'\t{self.__operand_to_command_mapping[command]}\n')
 
     def write_label(self, label:str) -> None:
         self.__output_file.write(f'label {label}\n')
