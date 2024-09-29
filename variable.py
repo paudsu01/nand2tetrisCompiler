@@ -17,9 +17,14 @@ class Variable:
          'arg': VariableType.argument
             }
 
-    def __init__(self, identifier: str, var_type: str):
+    def __init__(self, identifier: str, var_type: str, class_name: str):
         self.__identifier = identifier
         self.__var_type = self.var_type_to_enum[var_type]
+        self.__class_name = class_name
+
+    @property
+    def class_name(self) -> int:
+        return self.__class_name
 
     @property
     def identifier(self) -> int:

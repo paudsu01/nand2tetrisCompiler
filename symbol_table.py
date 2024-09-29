@@ -25,8 +25,8 @@ class SymbolTable:
                 or identifier in cls.__IDENTIFIER_TO_VAR_CLASS_MAPPING) else False
 
     @classmethod
-    def add(cls, identifier: str, var_type: str):
-        variable = Variable(identifier, var_type)
+    def add(cls, identifier: str, var_type: str, class_name: str) -> None:
+        variable = Variable(identifier, var_type, class_name)
 
         if variable.type is VariableType.static:
             variable.index = cls.__STATIC_COUNTER

@@ -35,6 +35,7 @@ class Parser:
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
+
     def compileSymbol(self, indent: int, specific_value_required=False, *expected_values: Tuple[str])->str:
         current_token = self.__scanner.current_token()
 
@@ -59,6 +60,7 @@ class Parser:
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
 
+
     def compileIntegerConstant(self, indent : int)->str:
         current_token = self.__scanner.current_token()
 
@@ -69,6 +71,7 @@ class Parser:
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml 
 
+
     def compileStringConstant(self, indent : int)->str:
         current_token = self.__scanner.current_token()
 
@@ -78,6 +81,7 @@ class Parser:
         xml = ' ' * indent + f"<stringConstant> {current_token.value} </stringConstant>\n"
         if self.__scanner.has_more_tokens(): self.__scanner.advance()
         return xml
+
 
     def compileIdentifier(self, indent : int)->str:
 
@@ -120,26 +124,31 @@ class Parser:
 
         var_type = self.__scanner.current_token().value
         xml.append(self.compileKeyword(indent+2, True, "static", "field"))
+
+        class_type = self.__scanner.current_token().value
         xml.append(self.compileType(indent+2))
+
         identifier = self.__scanner.current_token().value
         xml.append(self.compileIdentifier(indent+2))
 
-        SymbolTable.add(identifier, var_type)
+        SymbolTable.add(identifier, var_type, class_type)
 
         while self.__scanner.current_token().value == ',':
             xml.append(self.compileSymbol(indent+2, True,","))
             identifier = self.__scanner.current_token().value
             xml.append(self.compileIdentifier(indent+2))
-            SymbolTable.add(identifier, var_type)
+            SymbolTable.add(identifier, var_type , class_type)
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
         xml.append(' ' * indent + '</classVarDec>\n')
 
         return ''.join(xml)
 
+
     def compileType(self, indent : int)->str:
         token = self.__scanner.current_token()
         return self.compileIdentifier(indent) if token.token_type is TokenType.IDENTIFIER else self.compileKeyword(indent, True, 'int', 'char', 'boolean')
+
 
     def compileSubroutine(self, indent : int, constructor=False)->str:
 
@@ -170,6 +179,7 @@ class Parser:
         xml.append(' ' * indent + '</subroutineDec>\n')
         return ''.join(xml)
     
+
     def compileSubroutineBody(self, indent: int, constructor: bool) -> str:
 
         xml = [' ' * indent + '<subroutineBody>\n']
@@ -191,17 +201,25 @@ class Parser:
         current_token = self.__scanner.current_token()
         if not current_token.token_type is TokenType.SYMBOL:
 
+            
+            var_type = self.__scanner.current_token().value
             xml.append(self.compileType(indent+2))
+
             identifier = self.__scanner.current_token().value
             xml.append(self.compileIdentifier(indent+2))
-            SymbolTable.add(identifier, 'arg')
+
+            SymbolTable.add(identifier, 'arg', var_type)
 
             while self.__scanner.current_token().value == ',':
                 xml.append(self.compileSymbol(indent+2, True, ','))
+
+                var_type = self.__scanner.current_token().value
                 xml.append(self.compileType(indent+2))
+
                 identifier = self.__scanner.current_token().value
                 xml.append(self.compileIdentifier(indent+2))
-                SymbolTable.add(identifier, 'arg')
+
+                SymbolTable.add(identifier, 'arg', var_type)
 
         xml.append(' '* indent + '</parameterList>\n')
         return ''.join(xml)
@@ -210,18 +228,22 @@ class Parser:
         xml = [' '* indent + '<varDec>\n']
 
         xml.append(self.compileKeyword(indent+2, True, 'var'))
+
+        var_type = self.__scanner.current_token().value
         xml.append(self.compileType(indent+2))
 
         current_token = self.__scanner.current_token()
         xml.append(self.compileIdentifier(indent+2))
 
-        SymbolTable.add(current_token.value, 'var')
+        SymbolTable.add(current_token.value, 'var', var_type)
 
         while self.__scanner.current_token().value == ',':
             xml.append(self.compileSymbol(indent+2, True, ','))
+
             current_token = self.__scanner.current_token()
             xml.append(self.compileIdentifier(indent+2))
-            SymbolTable.add(current_token.value, 'var')
+
+            SymbolTable.add(current_token.value, 'var', var_type)
 
         xml.append(self.compileSymbol(indent+2, True, ';'))
         xml.append(' '* indent + '</varDec>\n')
@@ -349,16 +371,35 @@ class Parser:
         xml.append(self.compileIdentifier(indent+2))
 
         if self.__scanner.current_token().value == '.':
+
+            same_class = False
             xml.append(self.compileSymbol(indent+2, True, '.'))
-            subroutine_name = self.__scanner.current_token().value
+            method_name = self.__scanner.current_token().value
             xml.append(self.compileIdentifier(indent+2))
-            basic_args = 1 if subroutine_name != 'new' else 0
+
+            if SymbolTable.contains(subroutine_name):
+                variable = SymbolTable.get_variable(subroutine_name)
+                basic_args = 1
+                self.__vm_writer.write_push(variable.memory_segment, variable.index)
+                class_name = variable.class_name
+            else:
+                class_name = subroutine_name
+
+        else:
+            same_class = True
+            if subroutine_name != 'new':
+                basic_args = 1
+                self.__vm_writer.write_push("pointer", 0)
 
         xml.append(self.compileSymbol(indent+2, True, '('))
         xml_to_append, n_args = (self.compileExpressionList(indent+2))
         xml.append(xml_to_append)
         xml.append(self.compileSymbol(indent+2, True, ')'))
-        self.__vm_writer.write_call(f'{self.__class_name}.{subroutine_name}', n_args+basic_args)
+
+        if same_class:
+            self.__vm_writer.write_call(f'{self.__class_name}.{subroutine_name}', n_args+basic_args)
+        else:
+            self.__vm_writer.write_call(f'{class_name}.{method_name}', n_args+basic_args)
 
         return ''.join(xml)
 
